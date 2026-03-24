@@ -1,1 +1,194 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pay Budget</title>
+<style>
+/* v1.0 lite */
+body{font-family:Arial,sans-serif;margin:0;background:#111;color:#eee}
+.wrap{max-width:900px;margin:auto;padding:14px}
+h1{margin:0 0 6px}
+p{color:#bbb}
+.top,.sum,.card{background:#1b1b1b;border:1px solid #333;border-radius:14px;padding:12px;margin:12px 0}
+input,textarea,button,select{width:100%;padding:10px;border-radius:10px;border:1px solid #444;background:#222;color:#eee;box-sizing:border-box;margin:6px 0}
+button{cursor:pointer;background:#2d6cdf;border:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.small{font-size:12px;color:#aaa}
+.cards{display:grid;gap:12px}
+.head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.badge{padding:6px 10px;border-radius:999px;font-size:12px;font-weight:bold}
+.g{background:#173322;color:#7ef0ad}
+.y{background:#3a320f;color:#ffe27a}
+.r{background:#3a1717;color:#ff9a9a}
+.exp{margin-top:10px;padding-top:10px;border-top:1px solid #333}
+.item{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #2a2a2a}
+.item:last-child{border-bottom:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions button{width:auto;padding:8px 12px}
+.del{background:#8b2d2d}
+.alt{background:#444}
+@media(max-width:650px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Pay Cycle Budget</h1>
+    <p>Add a pay period, then add expenses under it.</p>
+  </div>
 
+  <div class="sum" id="summary"></div>
+
+  <div class="card">
+    <h3>Add Pay Period</h3>
+    <div class="row">
+      <input id="payDate" type="date">
+      <input id="payAmt" type="number" step="0.01" placeholder="Expected pay">
+    </div>
+    <textarea id="payNote" placeholder="Notes"></textarea>
+    <button onclick="addPay()">Add Pay Period</button>
+  </div>
+
+  <div class="cards" id="list"></div>
+</div>
+
+<script>
+const K='pay-budget-lite-v1';
+let data=JSON.parse(localStorage.getItem(K)||'{"pays":[]}');
+
+function save(){localStorage.setItem(K,JSON.stringify(data))}
+function money(n){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(n||0)}
+function dateFmt(d){
+  if(!d) return 'No date';
+  return new Date(d+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
+}
+function totals(pay){
+  let exp=(pay.expenses||[]).reduce((s,e)=>s+Number(e.amount||0),0);
+  return {exp,rem:Number(pay.pay||0)-exp};
+}
+function stat(rem){
+  if(rem<0) return ['r','Red'];
+  if(rem<200) return ['y','Tight'];
+  return ['g','OK'];
+}
+function addPay(){
+  let d=document.getElementById('payDate').value;
+  let p=Number(document.getElementById('payAmt').value||0);
+  let n=document.getElementById('payNote').value.trim();
+  if(!d||!p) return alert('Add a date and pay amount');
+  data.pays.unshift({id:Date.now().toString(),date:d,pay:p,note:n,expenses:[]});
+  save();
+  document.getElementById('payDate').value='';
+  document.getElementById('payAmt').value='';
+  document.getElementById('payNote').value='';
+  render();
+}
+  /* End of section 1 */
+ function delPay(id){
+  if(!confirm('Delete this pay period?')) return;
+  data.pays=data.pays.filter(x=>x.id!==id);
+  save(); render();
+}
+function addExp(id){
+  let name=prompt('Expense name?');
+  if(!name) return;
+  let amount=Number(prompt('Amount?')||0);
+  if(!amount) return;
+  let cat=prompt('Category? Fixed / Variable / Optional','Fixed')||'Fixed';
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+  pay.expenses.push({id:Date.now().toString(),name,amount,cat});
+  save(); render();
+}
+function delExp(payId,expId){
+  let pay=data.pays.find(x=>x.id===payId);
+  if(!pay) return;
+  pay.expenses=pay.expenses.filter(x=>x.id!==expId);
+  save(); render();
+}
+function seed(){
+  if(data.pays.length && !confirm('Add sample data as well?')) return;
+  data.pays.unshift(
+    {id:'a1',date:'2026-03-27',pay:3200,note:'Regular pay',expenses:[
+      {id:'e1',name:'Mortgage',amount:1050,cat:'Fixed'},
+      {id:'e2',name:'Car Loan',amount:1130,cat:'Fixed'},
+      {id:'e3',name:'Food',amount:250,cat:'Variable'}
+    ]},
+    {id:'a2',date:'2026-04-10',pay:3200,note:'Tighter cycle',expenses:[
+      {id:'e4',name:'Mortgage',amount:1050,cat:'Fixed'},
+      {id:'e5',name:'Car Loan',amount:1130,cat:'Fixed'},
+      {id:'e6',name:'Fuel',amount:120,cat:'Variable'},
+      {id:'e7',name:'Utilities',amount:180,cat:'Variable'}
+    ]}
+  );
+  save(); render();
+}
+function renderSummary(){
+  let pay=data.pays.reduce((s,p)=>s+Number(p.pay||0),0);
+  let exp=data.pays.reduce((s,p)=>s+totals(p).exp,0);
+  let rem=pay-exp;
+  document.getElementById('summary').innerHTML=
+    '<div class=\"row\">'+
+    '<div><div class=\"small\">Expected Pay</div><strong>'+money(pay)+'</strong></div>'+
+    '<div><div class=\"small\">Expenses</div><strong>'+money(exp)+'</strong></div>'+
+    '</div>'+
+    '<div style=\"margin-top:10px\"><div class=\"small\">Net Remaining</div><strong>'+money(rem)+'</strong></div>'+
+    '<div class=\"actions\"><button class=\"alt\" onclick=\"seed()\">Add Sample Data</button></div>';
+}
+  /* End of Section 2 */
+
+  function render(){
+  renderSummary();
+  let box=document.getElementById('list');
+  if(!data.pays.length){
+    box.innerHTML='<div class="card">No pay periods yet.</div>';
+    return;
+  }
+  box.innerHTML=data.pays
+    .sort((a,b)=>new Date(a.date)-new Date(b.date))
+    .map(p=>{
+      let t=totals(p), s=stat(t.rem);
+      return `
+      <div class="card">
+        <div class="head">
+          <div>
+            <div><strong>${dateFmt(p.date)}</strong></div>
+            <div class="small">${p.note||'No notes'}</div>
+          </div>
+          <div class="badge ${s[0]}">${s[1]}</div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div><div class="small">Expected Pay</div><strong>${money(p.pay)}</strong></div>
+          <div><div class="small">Expenses</div><strong>${money(t.exp)}</strong></div>
+        </div>
+
+        <div style="margin-top:10px"><div class="small">Remaining</div><strong>${money(t.rem)}</strong></div>
+
+        <div class="actions">
+          <button onclick="addExp('${p.id}')">Add Expense</button>
+          <button class="del" onclick="delPay('${p.id}')">Delete Pay</button>
+        </div>
+
+        <div class="exp">
+          ${(p.expenses||[]).length ? p.expenses.map(e=>`
+            <div class="item">
+              <div>
+                <div>${e.name}</div>
+                <div class="small">${e.cat}</div>
+              </div>
+              <div style="text-align:right">
+                <div>${money(e.amount)}</div>
+                <button class="del" style="margin-top:6px;padding:6px 10px;width:auto" onclick="delExp('${p.id}','${e.id}')">X</button>
+              </div>
+            </div>
+          `).join('') : '<div class="small">No expenses yet</div>'}
+        </div>
+      </div>`;
+    }).join('');
+}
+render();
+</script>
+</body>
+</html>
