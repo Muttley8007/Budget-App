@@ -167,8 +167,8 @@ function delExp(payId,expId){
   pay.expenses=pay.expenses.filter(x=>x.id!==expId);
   save(); render();
 }
-function seed(){
- /* if(data.pays.length && !confirm('Add sample data as well?')) return;
+/*function seed(){
+  if(data.pays.length && !confirm('Add sample data as well?')) return;
   data.pays.unshift(
     {id:'a1',date:'2026-03-27',pay:3200,note:'Regular pay',expenses:[
       {id:'e1',name:'Mortgage',amount:1050,cat:'Fixed'},
@@ -183,7 +183,7 @@ function seed(){
     ]}
   );
   save(); render();
-}*/
+}
 if(!data.templates.length){
   data.templates.push(
     {id:'t1',name:'Mortgage',amount:1050,cat:'Fixed'},
@@ -193,8 +193,20 @@ if(!data.templates.length){
   );
   save();
   render();
-}
-  
+}*/
+
+  function seed(){
+  if(!data.templates.length){
+    data.templates.push(
+      {id:'t1',name:'Mortgage',amount:1050,cat:'Fixed'},
+      {id:'t2',name:'Car Loan',amount:1130,cat:'Fixed'},
+      {id:'t3',name:'Food',amount:250,cat:'Variable'},
+      {id:'t4',name:'Fuel',amount:120,cat:'Variable'}
+    );
+  }
+  save();
+  render();
+  }
 function renderSummary(){
   let pay=data.pays.reduce((s,p)=>s+Number(p.pay||0),0);
   let exp=data.pays.reduce((s,p)=>s+totals(p).exp,0);
