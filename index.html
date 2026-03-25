@@ -49,7 +49,6 @@ button{cursor:pointer;background:#2d6cdf;border:0}
 </div>
 
 <div id="cardsTab">
-  <div class="card"> 
 
   <div class="card">
     <h3>Add Pay Period</h3>
@@ -301,7 +300,6 @@ function renderDashboard(){
   function render(){
   renderSummary();
   renderDashboard();
-  let box=document.getElementById('list');
   let box=document.getElementById('list');
   if(!data.pays.length){
     box.innerHTML='<div class="card">No pay periods yet.</div>';
