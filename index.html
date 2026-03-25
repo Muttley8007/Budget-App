@@ -92,7 +92,7 @@ function addPay(){
   data.pays=data.pays.filter(x=>x.id!==id);
   save(); render();
 }
-function addExp(id){
+/*function addExp(id){
   let name=prompt('Expense name?');
   if(!name) return;
   let amount=Number(prompt('Amount?')||0);
@@ -102,7 +102,65 @@ function addExp(id){
   if(!pay) return;
   pay.expenses.push({id:Date.now().toString(),name,amount,cat});
   save(); render();
+}*/
+function addExp(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+
+  let tpl=null;
+
+  if(data.templates.length){
+    let list=data.templates.map((t,i)=>
+      (i+1)+'. '+t.name+' - '+money(t.amount)+' ('+t.cat+')'
+    ).join('\n');
+
+    let pick=prompt(
+      'Choose a saved expense number, or type N for new:\n\n'+list,
+      'N'
+    );
+
+    if(pick && pick.toUpperCase()!=='N'){
+      let idx=Number(pick)-1;
+      if(idx>=0 && idx<data.templates.length) tpl=data.templates[idx];
+    }
+  }
+
+  let name=prompt('Expense name?', tpl?tpl.name:'');
+  if(!name) return;
+
+  let amount=Number(prompt('Amount?', tpl?tpl.amount:'')||0);
+  if(!amount) return;
+
+  let cat=prompt('Category? Fixed / Variable / Optional / Buffer', tpl?tpl.cat:'Fixed')||'Fixed';
+
+  pay.expenses.push({
+    id:Date.now().toString(),
+    name,
+    amount,
+    cat
+  });
+
+  if(tpl){
+    if(confirm('Overwrite saved template with this new value?')){
+      tpl.name=name;
+      tpl.amount=amount;
+      tpl.cat=cat;
+    }
+  }else{
+    if(confirm('Save this expense as a reusable template?')){
+      data.templates.push({
+        id:'t'+Date.now().toString(),
+        name,
+        amount,
+        cat
+      });
+    }
+  }
+
+  save();
+  render();
 }
+  
 function delExp(payId,expId){
   let pay=data.pays.find(x=>x.id===payId);
   if(!pay) return;
@@ -110,7 +168,7 @@ function delExp(payId,expId){
   save(); render();
 }
 function seed(){
-  if(data.pays.length && !confirm('Add sample data as well?')) return;
+ /* if(data.pays.length && !confirm('Add sample data as well?')) return;
   data.pays.unshift(
     {id:'a1',date:'2026-03-27',pay:3200,note:'Regular pay',expenses:[
       {id:'e1',name:'Mortgage',amount:1050,cat:'Fixed'},
@@ -125,7 +183,16 @@ function seed(){
     ]}
   );
   save(); render();
+}*/
+if(!data.templates.length){
+  data.templates.push(
+    {id:'t1',name:'Mortgage',amount:1050,cat:'Fixed'},
+    {id:'t2',name:'Car Loan',amount:1130,cat:'Fixed'},
+    {id:'t3',name:'Food',amount:250,cat:'Variable'},
+    {id:'t4',name:'Fuel',amount:120,cat:'Variable'}
+  );
 }
+  
 function renderSummary(){
   let pay=data.pays.reduce((s,p)=>s+Number(p.pay||0),0);
   let exp=data.pays.reduce((s,p)=>s+totals(p).exp,0);
