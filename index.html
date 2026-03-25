@@ -38,7 +38,18 @@ button{cursor:pointer;background:#2d6cdf;border:0}
     <p>Add a pay period, then add expenses under it.</p>
   </div>
 
-  <div class="sum" id="summary"></div>
+  
+ <div class="sum" id="summary"></div>
+
+<div class="card">
+  <div class="actions">
+    <button class="alt" onclick="showTab('cards')">Cards</button>
+    <button class="alt" onclick="showTab('dashboard')">Dashboard</button>
+  </div>
+</div>
+
+<div id="cardsTab">
+  <div class="card"> 
 
   <div class="card">
     <h3>Add Pay Period</h3>
@@ -50,8 +61,12 @@ button{cursor:pointer;background:#2d6cdf;border:0}
     <button onclick="addPay()">Add Pay Period</button>
   </div>
 
-  <div class="cards" id="list"></div>
+ <div class="cards" id="list"></div>
 </div>
+
+<div id="dashboardTab" style="display:none;">
+  <div class="card" id="dashboard"></div>
+</div> 
 
 <script>
 const K='pay-budget-lite-v1';
@@ -187,6 +202,13 @@ function delExp(payId,expId){
   pay.expenses=pay.expenses.filter(x=>x.id!==expId);
   save(); render();
 }
+  let currentTab='cards';
+
+function showTab(tab){
+  currentTab=tab;
+  document.getElementById('cardsTab').style.display = tab==='cards' ? 'block' : 'none';
+  document.getElementById('dashboardTab').style.display = tab==='dashboard' ? 'block' : 'none';
+}
 /*function seed(){
   if(data.pays.length && !confirm('Add sample data as well?')) return;
   data.pays.unshift(
@@ -240,9 +262,46 @@ function renderSummary(){
     '<div class=\"actions\"><button class=\"alt\" onclick=\"seed()\">Add Sample Data</button></div>';
 }
   /* End of Section 2 */
+function renderDashboard(){
+  let box=document.getElementById('dashboard');
+  if(!data.pays.length){
+    box.innerHTML='<h3>Dashboard</h3><div class="small">No pay periods yet.</div>';
+    return;
+  }
 
+  let rows=data.pays
+    .slice()
+    .sort((a,b)=>new Date(a.date)-new Date(b.date))
+    .map(p=>{
+      let t=totals(p);
+      return `
+        <div class="item">
+          <div>
+            <div><strong>${dateFmt(p.date)}</strong></div>
+            <div class="small">Income: ${money(p.pay)}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Expenses: ${money(t.exp)}</div>
+            <div><strong>Remaining: ${money(t.rem)}</strong></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  box.innerHTML = `
+    <h3>Dashboard</h3>
+    <div class="small" style="margin-bottom:10px;">Summary of all planned pays</div>
+    ${rows}
+  `;
+}
+
+  
+/*  function render(){
+  renderSummary();*/
   function render(){
   renderSummary();
+  renderDashboard();
+  let box=document.getElementById('list');
   let box=document.getElementById('list');
   if(!data.pays.length){
     box.innerHTML='<div class="card">No pay periods yet.</div>';
