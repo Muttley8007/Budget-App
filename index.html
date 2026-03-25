@@ -287,13 +287,152 @@ function renderDashboard(){
       `;
     }).join('');
 
-  box.innerHTML = `
+ box.innerHTML = `
     <h3>Dashboard</h3>
     <div class="small" style="margin-bottom:10px;">Summary of all planned pays</div>
     ${rows}
+    <div style="margin-top:16px;">
+      <h4 style="margin:0 0 10px;">Monthly Outlook</h4>
+      <canvas id="monthlyChart" height="260" style="width:100%;background:#181818;border:1px solid #333;border-radius:12px;"></canvas>
+    </div>
   `;
+  drawMonthlyChart(); 
+}
+function drawMonthlyChart(){
+  const canvas=document.getElementById('monthlyChart');
+  if(!canvas) return;
+
+  const dpr=window.devicePixelRatio||1;
+  const cssWidth=canvas.clientWidth || 600;
+  const cssHeight=260;
+
+  canvas.width=cssWidth*dpr;
+  canvas.height=cssHeight*dpr;
+
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,cssWidth,cssHeight);
+
+  const pad={top:20,right:20,bottom:40,left:50};
+  const w=cssWidth-pad.left-pad.right;
+  const h=cssHeight-pad.top-pad.bottom;
+
+  if(!data.pays.length){
+    ctx.fillStyle='#aaa';
+    ctx.font='12px Arial';
+    ctx.fillText('No data to chart yet', pad.left, pad.top+20);
+    return;
+  }
+
+  const monthly={};
+
+  data.pays.forEach(p=>{
+    const key=(p.date||'').slice(0,7);
+    if(!key) return;
+    if(!monthly[key]) monthly[key]={income:0,expenses:0};
+    monthly[key].income += Number(p.pay||0);
+    monthly[key].expenses += totals(p).exp;
+  });
+
+  const months=Object.keys(monthly).sort();
+  const points=months.map(m=>{
+    const income=monthly[m].income;
+    const expenses=monthly[m].expenses;
+    return {
+      month:m,
+      income,
+      expenses,
+      remaining:income-expenses
+    };
+  });
+
+  const maxY=10000;
+  const steps=10;
+  const stepValue=maxY/steps;
+
+  ctx.strokeStyle='#333';
+  ctx.lineWidth=1;
+  ctx.font='11px Arial';
+  ctx.fillStyle='#aaa';
+
+  for(let i=0;i<=steps;i++){
+    const y=pad.top + h - (i/steps)*h;
+    ctx.beginPath();
+    ctx.moveTo(pad.left,y);
+    ctx.lineTo(pad.left+w,y);
+    ctx.stroke();
+
+    ctx.fillText('$'+(i*stepValue/1000).toFixed(0)+'k', 8, y+4);
+  }
+
+  ctx.strokeStyle='#555';
+  ctx.beginPath();
+  ctx.moveTo(pad.left,pad.top);
+  ctx.lineTo(pad.left,pad.top+h);
+  ctx.lineTo(pad.left+w,pad.top+h);
+  ctx.stroke();
+
+  const groupWidth=w/months.length;
+  const barWidth=Math.min(22, groupWidth*0.22);
+
+  function yPos(val){
+    const capped=Math.max(0, Math.min(maxY, val));
+    return pad.top + h - (capped/maxY)*h;
+  }
+
+  points.forEach((p,i)=>{
+    const cx=pad.left + groupWidth*i + groupWidth/2;
+
+    const incomeX=cx-barWidth-4;
+    const expenseX=cx+4;
+
+    const incomeY=yPos(p.income);
+    const expenseY=yPos(p.expenses);
+
+    ctx.fillStyle='#2d6cdf';
+    ctx.fillRect(incomeX, incomeY, barWidth, pad.top+h-incomeY);
+
+    ctx.fillStyle='#b33a3a';
+    ctx.fillRect(expenseX, expenseY, barWidth, pad.top+h-expenseY);
+
+    const label=formatMonthLabel(p.month);
+    ctx.fillStyle='#aaa';
+    ctx.textAlign='center';
+    ctx.fillText(label, cx, pad.top+h+18);
+  });
+
+  ctx.beginPath();
+  points.forEach((p,i)=>{
+    const cx=pad.left + groupWidth*i + groupWidth/2;
+    const y=yPos(p.remaining);
+    if(i===0) ctx.moveTo(cx,y);
+    else ctx.lineTo(cx,y);
+  });
+  ctx.strokeStyle='#f1c40f';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  points.forEach((p,i)=>{
+    const cx=pad.left + groupWidth*i + groupWidth/2;
+    const y=yPos(p.remaining);
+    ctx.beginPath();
+    ctx.arc(cx,y,3,0,Math.PI*2);
+    ctx.fillStyle='#f1c40f';
+    ctx.fill();
+  });
+
+  ctx.textAlign='left';
 }
 
+function formatMonthLabel(ym){
+  const [y,m]=ym.split('-');
+  const d=new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleDateString('en-AU',{month:'short'});
+}
+
+window.addEventListener('resize', ()=>{
+  if(currentTab==='dashboard') drawMonthlyChart();
+});  
   
 /*  function render(){
   renderSummary();*/
