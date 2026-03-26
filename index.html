@@ -71,7 +71,9 @@ button{cursor:pointer;background:#2d6cdf;border:0}
 const K='pay-budget-lite-v1';
 /*let data=JSON.parse(localStorage.getItem(K)||'{"pays":[]}');*/
 let data=JSON.parse(localStorage.getItem(K)||'{"pays":[],"templates":[]}');
-if(!data.templates) data.templates=[];
+data.pays.forEach(p=>{
+  if(typeof p.archived==='undefined') p.archived=false;
+});
   
 function save(){localStorage.setItem(K,JSON.stringify(data))}
 function money(n){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(n||0)}
@@ -88,12 +90,28 @@ function stat(rem){
   if(rem<200) return ['y','Tight'];
   return ['g','OK'];
 }
+
+  function closePay(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+  pay.archived=true;
+  save();
+  render();
+}
+
+function reopenPay(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+  pay.archived=false;
+  save();
+  render();
+}
 function addPay(){
   let d=document.getElementById('payDate').value;
   let p=Number(document.getElementById('payAmt').value||0);
   let n=document.getElementById('payNote').value.trim();
   if(!d||!p) return alert('Add a date and pay amount');
-  data.pays.unshift({id:Date.now().toString(),date:d,pay:p,note:n,expenses:[]});
+  data.pays.unshift({id:Date.now().toString(),date:d,pay:p,note:n,expenses:[],archived:false});
   save();
   document.getElementById('payDate').value='';
   document.getElementById('payAmt').value='';
@@ -445,7 +463,8 @@ window.addEventListener('resize', ()=>{
     return;
   }
   box.innerHTML=data.pays
-    .sort((a,b)=>new Date(a.date)-new Date(b.date))
+  .filter(p=>!p.archived)
+  .sort((a,b)=>new Date(a.date)-new Date(b.date))
     .map(p=>{
       let t=totals(p), s=stat(t.rem);
       return `
@@ -464,13 +483,14 @@ window.addEventListener('resize', ()=>{
         </div>
 
         <div style="margin-top:10px"><div class="small">Remaining</div><strong>${money(t.rem)}</strong></div>
+
+    
 <div class="actions">
   <button onclick="addExp('${p.id}')">Add Expense</button>
   <button class="alt" onclick="editPay('${p.id}')">Edit Pay</button>
+  <button class="alt" onclick="closePay('${p.id}')">Close Pay</button>
   <button class="del" onclick="delPay('${p.id}')">Delete Pay</button>
 </div>
-    
-
         <div class="exp">
           ${(p.expenses||[]).length ? p.expenses.map(e=>`
             <div class="item">
