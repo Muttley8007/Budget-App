@@ -1,0 +1,470 @@
+const K='pay-budget-lite-v1';
+/*let data=JSON.parse(localStorage.getItem(K)||'{"pays":[]}');*/
+let data=JSON.parse(localStorage.getItem(K)||'{"pays":[],"templates":[]}');
+if(!data.templates) data.templates=[];
+data.pays.forEach(p=>{
+  if(typeof p.archived==='undefined') p.archived=false;
+});
+ data.pays.forEach(p=>{
+  (p.expenses||[]).forEach(e=>{
+    if(typeof e.paid==='undefined') e.paid=false;
+});
+}); 
+function save(){localStorage.setItem(K,JSON.stringify(data))}
+function money(n){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(n||0)}
+function dateFmt(d){
+  if(!d) return 'No date';
+  return new Date(d+'T00:00:00').toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
+}
+function totals(pay){
+  let exp=(pay.expenses||[]).reduce((s,e)=>s+Number(e.amount||0),0);
+  return {exp,rem:Number(pay.pay||0)-exp};
+}
+function stat(rem){
+  if(rem<0) return ['r','Red'];
+  if(rem<200) return ['y','Tight'];
+  return ['g','OK'];
+}
+
+  function closePay(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+  pay.archived=true;
+  save();
+  render();
+}
+
+function reopenPay(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+  pay.archived=false;
+  save();
+  render();
+}
+function addPay(){
+  let d=document.getElementById('payDate').value;
+  let p=Number(document.getElementById('payAmt').value||0);
+  let n=document.getElementById('payNote').value.trim();
+  if(!d||!p) return alert('Add a date and pay amount');
+  data.pays.unshift({id:Date.now().toString(),date:d,pay:p,note:n,expenses:[],archived:false});
+  save();
+  document.getElementById('payDate').value='';
+  document.getElementById('payAmt').value='';
+  document.getElementById('payNote').value='';
+  render();
+}
+  function editPay(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+
+  let newDate=prompt('Pay date?', pay.date||'');
+  if(!newDate) return;
+
+  let newAmount=Number(prompt('Expected pay?', pay.pay||0) || 0);
+  if(!newAmount) return;
+
+  let newNote=prompt('Notes?', pay.note||'');
+  if(newNote===null) return;
+
+  pay.date=newDate;
+  pay.pay=newAmount;
+  pay.note=newNote;
+
+  save();
+  render();
+  }
+  /* End of section 1 */
+ function delPay(id){
+  if(!confirm('Delete this pay period?')) return;
+  data.pays=data.pays.filter(x=>x.id!==id);
+  save(); render();
+}
+/*function addExp(id){
+  let name=prompt('Expense name?');
+  if(!name) return;
+  let amount=Number(prompt('Amount?')||0);
+  if(!amount) return;
+  let cat=prompt('Category? Fixed / Variable / Optional','Fixed')||'Fixed';
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+  pay.expenses.push({id:Date.now().toString(),name,amount,cat});
+  save(); render();
+}*/
+function addExp(id){
+  let pay=data.pays.find(x=>x.id===id);
+  if(!pay) return;
+
+  let tpl=null;
+
+  if(data.templates.length){
+    let list=data.templates.map((t,i)=>
+      (i+1)+'. '+t.name+' - '+money(t.amount)+' ('+t.cat+')'
+    ).join('\n');
+
+    let pick=prompt(
+      'Choose a saved expense number, or type N for new:\n\n'+list,
+      'N'
+    );
+
+    if(pick && pick.toUpperCase()!=='N'){
+      let idx=Number(pick)-1;
+      if(idx>=0 && idx<data.templates.length) tpl=data.templates[idx];
+    }
+  }
+
+  let name=prompt('Expense name?', tpl?tpl.name:'');
+  if(!name) return;
+
+  let amount=Number(prompt('Amount?', tpl?tpl.amount:'')||0);
+  if(!amount) return;
+
+  let cat=prompt('Category? Fixed / Variable / Optional / Buffer', tpl?tpl.cat:'Fixed')||'Fixed';
+
+  pay.expenses.push({
+    id:Date.now().toString(),
+    name,
+    amount,
+    cat,
+    paid:false
+  });
+
+  if(tpl){
+    if(confirm('Overwrite saved template with this new value?')){
+      tpl.name=name;
+      tpl.amount=amount;
+      tpl.cat=cat;
+    }
+  }else{
+    if(confirm('Save this expense as a reusable template?')){
+      data.templates.push({
+        id:'t'+Date.now().toString(),
+        name,
+        amount,
+        cat
+      });
+    }
+  }
+
+  save();
+  render();
+}
+  
+function delExp(payId,expId){
+  let pay=data.pays.find(x=>x.id===payId);
+  if(!pay) return;
+  pay.expenses=pay.expenses.filter(x=>x.id!==expId);
+  save(); render();
+}
+  let currentTab='cards';
+
+function showTab(tab){
+  currentTab=tab;
+  document.getElementById('cardsTab').style.display = tab==='cards' ? 'block' : 'none';
+  document.getElementById('dashboardTab').style.display = tab==='dashboard' ? 'block' : 'none';
+}
+/*function seed(){
+  if(data.pays.length && !confirm('Add sample data as well?')) return;
+  data.pays.unshift(
+    {id:'a1',date:'2026-03-27',pay:3200,note:'Regular pay',expenses:[
+      {id:'e1',name:'Mortgage',amount:1050,cat:'Fixed'},
+      {id:'e2',name:'Car Loan',amount:1130,cat:'Fixed'},
+      {id:'e3',name:'Food',amount:250,cat:'Variable'}
+    ]},
+    {id:'a2',date:'2026-04-10',pay:3200,note:'Tighter cycle',expenses:[
+      {id:'e4',name:'Mortgage',amount:1050,cat:'Fixed'},
+      {id:'e5',name:'Car Loan',amount:1130,cat:'Fixed'},
+      {id:'e6',name:'Fuel',amount:120,cat:'Variable'},
+      {id:'e7',name:'Utilities',amount:180,cat:'Variable'}
+    ]}
+  );
+  save(); render();
+}
+if(!data.templates.length){
+  data.templates.push(
+    {id:'t1',name:'Mortgage',amount:1050,cat:'Fixed'},
+    {id:'t2',name:'Car Loan',amount:1130,cat:'Fixed'},
+    {id:'t3',name:'Food',amount:250,cat:'Variable'},
+    {id:'t4',name:'Fuel',amount:120,cat:'Variable'}
+  );
+  save();
+  render();
+}*/
+
+  function seed(){
+  if(!data.templates.length){
+    data.templates.push(
+      {id:'t1',name:'Mortgage',amount:1050,cat:'Fixed'},
+      {id:'t2',name:'Car Loan',amount:1130,cat:'Fixed'},
+      {id:'t3',name:'Food',amount:250,cat:'Variable'},
+      {id:'t4',name:'Fuel',amount:120,cat:'Variable'}
+    );
+  }
+  save();
+  render();
+  }
+function renderSummary(){
+  let pay=data.pays.reduce((s,p)=>s+Number(p.pay||0),0);
+  let exp=data.pays.reduce((s,p)=>s+totals(p).exp,0);
+  let rem=pay-exp;
+  document.getElementById('summary').innerHTML=
+    '<div class=\"row\">'+
+    '<div><div class=\"small\">Expected Pay</div><strong>'+money(pay)+'</strong></div>'+
+    '<div><div class=\"small\">Expenses</div><strong>'+money(exp)+'</strong></div>'+
+    '</div>'+
+    '<div style=\"margin-top:10px\"><div class=\"small\">Net Remaining</div><strong>'+money(rem)+'</strong></div>'+
+    '<div class=\"actions\"><button class=\"alt\" onclick=\"seed()\">Add Sample Data</button></div>';
+}
+
+function togglePaid(payId, expId){
+  let pay=data.pays.find(x=>x.id===payId);
+  if(!pay) return;
+
+  let exp=pay.expenses.find(x=>x.id===expId);
+  if(!exp) return;
+
+  exp.paid=!exp.paid;
+
+  save();
+  render();
+}
+  /* End of Section 2 */
+function renderDashboard(){
+  let box=document.getElementById('dashboard');
+  if(!data.pays.length){
+    box.innerHTML='<h3>Dashboard</h3><div class="small">No pay periods yet.</div>';
+    return;
+  }
+
+  let rows=data.pays
+    .slice()
+    .sort((a,b)=>new Date(a.date)-new Date(b.date))
+    .map(p=>{
+      let t=totals(p);
+      return `
+        <div class="item">
+          <div>
+            <div><strong>${dateFmt(p.date)}</strong></div>
+            <div class="small">Income: ${money(p.pay)}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Expenses: ${money(t.exp)}</div>
+            <div><strong>Remaining: ${money(t.rem)}</strong></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+ box.innerHTML = `
+    <h3>Dashboard</h3>
+    <div class="small" style="margin-bottom:10px;">Summary of all planned pays</div>
+    ${rows}
+    <div style="margin-top:16px;">
+      <h4 style="margin:0 0 10px;">Monthly Outlook</h4>
+      <canvas id="monthlyChart" height="260" style="width:100%;background:#181818;border:1px solid #333;border-radius:12px;"></canvas>
+    </div>
+  `;
+  drawMonthlyChart(); 
+}
+function drawMonthlyChart(){
+  const canvas=document.getElementById('monthlyChart');
+  if(!canvas) return;
+
+  const dpr=window.devicePixelRatio||1;
+  const cssWidth=canvas.clientWidth || 600;
+  const cssHeight=260;
+
+  canvas.width=cssWidth*dpr;
+  canvas.height=cssHeight*dpr;
+
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,cssWidth,cssHeight);
+
+  const pad={top:20,right:20,bottom:40,left:50};
+  const w=cssWidth-pad.left-pad.right;
+  const h=cssHeight-pad.top-pad.bottom;
+
+  if(!data.pays.length){
+    ctx.fillStyle='#aaa';
+    ctx.font='12px Arial';
+    ctx.fillText('No data to chart yet', pad.left, pad.top+20);
+    return;
+  }
+
+  const monthly={};
+
+  data.pays.forEach(p=>{
+    const key=(p.date||'').slice(0,7);
+    if(!key) return;
+    if(!monthly[key]) monthly[key]={income:0,expenses:0};
+    monthly[key].income += Number(p.pay||0);
+    monthly[key].expenses += totals(p).exp;
+  });
+
+  const months=Object.keys(monthly).sort();
+  const points=months.map(m=>{
+    const income=monthly[m].income;
+    const expenses=monthly[m].expenses;
+    return {
+      month:m,
+      income,
+      expenses,
+      remaining:income-expenses
+    };
+  });
+
+  const maxY=10000;
+  const steps=10;
+  const stepValue=maxY/steps;
+
+  ctx.strokeStyle='#333';
+  ctx.lineWidth=1;
+  ctx.font='11px Arial';
+  ctx.fillStyle='#aaa';
+
+  for(let i=0;i<=steps;i++){
+    const y=pad.top + h - (i/steps)*h;
+    ctx.beginPath();
+    ctx.moveTo(pad.left,y);
+    ctx.lineTo(pad.left+w,y);
+    ctx.stroke();
+
+    ctx.fillText('$'+(i*stepValue/1000).toFixed(0)+'k', 8, y+4);
+  }
+
+  ctx.strokeStyle='#555';
+  ctx.beginPath();
+  ctx.moveTo(pad.left,pad.top);
+  ctx.lineTo(pad.left,pad.top+h);
+  ctx.lineTo(pad.left+w,pad.top+h);
+  ctx.stroke();
+
+  const groupWidth=w/months.length;
+  const barWidth=Math.min(22, groupWidth*0.22);
+
+  function yPos(val){
+    const capped=Math.max(0, Math.min(maxY, val));
+    return pad.top + h - (capped/maxY)*h;
+  }
+
+  points.forEach((p,i)=>{
+    const cx=pad.left + groupWidth*i + groupWidth/2;
+
+    const incomeX=cx-barWidth-4;
+    const expenseX=cx+4;
+
+    const incomeY=yPos(p.income);
+    const expenseY=yPos(p.expenses);
+
+    ctx.fillStyle='#2d6cdf';
+    ctx.fillRect(incomeX, incomeY, barWidth, pad.top+h-incomeY);
+
+    ctx.fillStyle='#b33a3a';
+    ctx.fillRect(expenseX, expenseY, barWidth, pad.top+h-expenseY);
+
+    const label=formatMonthLabel(p.month);
+    ctx.fillStyle='#aaa';
+    ctx.textAlign='center';
+    ctx.fillText(label, cx, pad.top+h+18);
+  });
+
+  ctx.beginPath();
+  points.forEach((p,i)=>{
+    const cx=pad.left + groupWidth*i + groupWidth/2;
+    const y=yPos(p.remaining);
+    if(i===0) ctx.moveTo(cx,y);
+    else ctx.lineTo(cx,y);
+  });
+  ctx.strokeStyle='#f1c40f';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  points.forEach((p,i)=>{
+    const cx=pad.left + groupWidth*i + groupWidth/2;
+    const y=yPos(p.remaining);
+    ctx.beginPath();
+    ctx.arc(cx,y,3,0,Math.PI*2);
+    ctx.fillStyle='#f1c40f';
+    ctx.fill();
+  });
+
+  ctx.textAlign='left';
+}
+
+function formatMonthLabel(ym){
+  const [y,m]=ym.split('-');
+  const d=new Date(Number(y), Number(m)-1, 1);
+  return d.toLocaleDateString('en-AU',{month:'short'});
+}
+
+window.addEventListener('resize', ()=>{
+  if(currentTab==='dashboard') drawMonthlyChart();
+});  
+  
+/*  function render(){
+  renderSummary();*/
+  function render(){
+  renderSummary();
+  renderDashboard();
+  let box=document.getElementById('list');
+  if(!data.pays.length){
+    box.innerHTML='<div class="card">No pay periods yet.</div>';
+    return;
+  }
+  box.innerHTML=data.pays
+  .filter(p=>!p.archived)
+  .sort((a,b)=>new Date(a.date)-new Date(b.date))
+    .map(p=>{
+      let t=totals(p), s=stat(t.rem);
+      return `
+      <div class="card">
+        <div class="head">
+          <div>
+            <div><strong>${dateFmt(p.date)}</strong></div>
+            <div class="small">${p.note||'No notes'}</div>
+          </div>
+          <div class="badge ${s[0]}">${s[1]}</div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <div><div class="small">Expected Pay</div><strong>${money(p.pay)}</strong></div>
+          <div><div class="small">Expenses</div><strong>${money(t.exp)}</strong></div>
+        </div>
+
+        <div style="margin-top:10px"><div class="small">Remaining</div><strong>${money(t.rem)}</strong></div>
+
+    
+<div class="actions">
+  <button onclick="addExp('${p.id}')">Add Expense</button>
+  <button class="alt" onclick="editPay('${p.id}')">Edit Pay</button>
+  <button class="alt" onclick="closePay('${p.id}')">Close Pay</button>
+  <button class="del" onclick="delPay('${p.id}')">Delete Pay</button>
+</div>
+        <div class="exp">
+          ${(p.expenses||[]).length ? p.expenses.map(e=>`
+            <div class="item">
+<div style="min-width:0;">
+  <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+    ${e.name}
+  </div>
+  <div class="small">${e.cat}</div>
+</div>
+<div style="text-align:right;min-width:110px;">
+  <div>${money(e.amount)}</div>
+  <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+    <button 
+      onclick="togglePaid('${p.id}','${e.id}')"
+      style="padding:6px 10px;width:auto;background:${e.paid ? '#1f7a3f' : '#444'}">
+      ${e.paid ? '✓' : '□'}
+    </button>
+    <button class="del" style="padding:6px 10px;width:auto" onclick="delExp('${p.id}','${e.id}')">X</button>
+  </div>
+</div>
+              
+              
+          `).join('') : '<div class="small">No expenses yet</div>'}
+        </div>
+      </div>`;
+    }).join('');
+}
+render();
