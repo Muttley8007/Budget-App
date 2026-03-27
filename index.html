@@ -511,10 +511,16 @@ window.addEventListener('resize', ()=>{
         <div class="exp">
           ${(p.expenses||[]).length ? p.expenses.map(e=>`
             <div class="item">
-              <div>
-                <div>${e.name}</div>
-                <div class="small">${e.cat}</div>
-              </div>
+<div style="min-width:0;">
+  <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+    ${e.name}
+  </div>
+  <div class="small">${e.cat}</div>
+</div>
+           
+              >
+
+              
 <div style="text-align:right">
   <div>${money(e.amount)}</div>
   <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
