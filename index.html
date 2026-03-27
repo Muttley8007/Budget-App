@@ -77,7 +77,7 @@ data.pays.forEach(p=>{
  data.pays.forEach(p=>{
   (p.expenses||[]).forEach(e=>{
     if(typeof e.paid==='undefined') e.paid=false;
-  });
+});
 }); 
 function save(){localStorage.setItem(K,JSON.stringify(data))}
 function money(n){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(n||0)}
