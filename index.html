@@ -278,6 +278,19 @@ function renderSummary(){
     '<div style=\"margin-top:10px\"><div class=\"small\">Net Remaining</div><strong>'+money(rem)+'</strong></div>'+
     '<div class=\"actions\"><button class=\"alt\" onclick=\"seed()\">Add Sample Data</button></div>';
 }
+
+function togglePaid(payId, expId){
+  let pay=data.pays.find(x=>x.id===payId);
+  if(!pay) return;
+
+  let exp=pay.expenses.find(x=>x.id===expId);
+  if(!exp) return;
+
+  exp.paid=!exp.paid;
+
+  save();
+  render();
+}
   /* End of Section 2 */
 function renderDashboard(){
   let box=document.getElementById('dashboard');
@@ -498,11 +511,19 @@ window.addEventListener('resize', ()=>{
                 <div>${e.name}</div>
                 <div class="small">${e.cat}</div>
               </div>
-              <div style="text-align:right">
-                <div>${money(e.amount)}</div>
-                <button class="del" style="margin-top:6px;padding:6px 10px;width:auto" onclick="delExp('${p.id}','${e.id}')">X</button>
-              </div>
-            </div>
+<div style="text-align:right">
+  <div>${money(e.amount)}</div>
+  <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+    <button 
+      onclick="togglePaid('${p.id}','${e.id}')"
+      style="padding:6px 10px;width:auto;background:${e.paid ? '#1f7a3f' : '#444'}">
+      ${e.paid ? '✓' : '□'}
+    </button>
+    <button class="del" style="padding:6px 10px;width:auto" onclick="delExp('${p.id}','${e.id}')">X</button>
+  </div>
+</div>
+              
+              
           `).join('') : '<div class="small">No expenses yet</div>'}
         </div>
       </div>`;
