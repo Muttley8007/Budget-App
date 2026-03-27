@@ -1,8 +1,0 @@
-body{font-family:Arial;background:#0b1020;color:#fff;margin:0}
-.app-shell{padding:16px}
-.panel{background:#111;padding:16px;border-radius:12px;margin-bottom:16px}
-input,textarea{width:100%;margin:6px 0;padding:10px;border-radius:8px;border:none}
-.btn{padding:10px;border-radius:10px;border:none;cursor:pointer}
-.btn-primary{background:#5b8cff;color:white}
-.btn-secondary{background:#333;color:white}
-.footer-actions{position:fixed;bottom:0;left:0;right:0;padding:10px;background:#111;display:flex;gap:10px}
