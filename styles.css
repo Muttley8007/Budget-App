@@ -690,3 +690,23 @@ body{
 .bottom-bar{
   padding-right:20px !important;
 }
+
+
+/* Divider between pay periods */
+.pay-card{
+  position:relative;
+}
+
+.pay-card + .pay-card{
+  margin-top:28px;
+}
+
+.pay-card + .pay-card::before{
+  content:"";
+  position:absolute;
+  top:-16px;
+  left:10%;
+  width:80%;
+  height:1px;
+  background:rgba(255,255,255,0.25);
+}
