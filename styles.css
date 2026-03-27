@@ -22,3 +22,28 @@ button{cursor:pointer;background:#2d6cdf;border:0}
 .del{background:#8b2d2d}
 .alt{background:#444}
 @media(max-width:650px){.row{grid-template-columns:1fr}}
+.item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  padding:8px 0;
+  border-bottom:1px solid #2a2a2a;
+  align-items:start;
+}
+
+.expense-left{
+  min-width:0;
+}
+
+.expense-name{
+  font-weight:500;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:140px;
+}
+
+.expense-right{
+  text-align:right;
+  min-width:110px;
+}
