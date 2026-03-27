@@ -74,7 +74,11 @@ let data=JSON.parse(localStorage.getItem(K)||'{"pays":[],"templates":[]}');
 data.pays.forEach(p=>{
   if(typeof p.archived==='undefined') p.archived=false;
 });
-  
+ data.pays.forEach(p=>{
+  (p.expenses||[]).forEach(e=>{
+    if(typeof e.paid==='undefined') e.paid=false;
+  });
+}); 
 function save(){localStorage.setItem(K,JSON.stringify(data))}
 function money(n){return new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(n||0)}
 function dateFmt(d){
