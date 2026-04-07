@@ -10,6 +10,7 @@ data.pays.forEach(p => {
   if (!p.expenses) p.expenses = [];
   p.expenses.forEach(e => {
     if (typeof e.paid === 'undefined') e.paid = false;
+    if (typeof e.date === 'undefined') e.date = '';
   });
 });
 
@@ -142,6 +143,7 @@ function cancelAddExp(id){
   pay.newExpenseName = '';
   pay.newExpenseAmount = '';
   pay.newExpenseCat = 'Fixed';
+  pay.newExpenseDate = '';
   pay.selectedTemplateId = '';
   save();
   render();
@@ -166,6 +168,7 @@ function applyExpenseTemplate(id, templateId){
     pay.newExpenseName = tpl.name || '';
     pay.newExpenseAmount = tpl.amount || '';
     pay.newExpenseCat = tpl.cat || 'Fixed';
+    pay.newExpenseDate = tpl.date || '';
   }
 
   save();
@@ -236,6 +239,7 @@ function saveInlineExp(id){
     name,
     amount,
     cat,
+    date: pay.newExpenseDate || '',
     paid: false
   });
 
@@ -243,6 +247,7 @@ function saveInlineExp(id){
   pay.newExpenseName = '';
   pay.newExpenseAmount = '';
   pay.newExpenseCat = 'Fixed';
+  pay.newExpenseDate = '';
   pay.selectedTemplateId = '';
 
   save();
@@ -592,10 +597,15 @@ function render() {
                       </option>
                     `).join('')}
                   </select>
+<input
+  type="date"
+  value="${escapeHtml(p.newExpenseDate || '')}"
+  oninput="updateExpenseDraft('${p.id}','newExpenseDate', this.value)"
+>
                 </div>
               ` : ''}
 
-              <div class="inline-expense-grid">
+              <div class="inline-expense-grid with-date">
                 <input
                   type="text"
                   placeholder="Expense name"
@@ -632,6 +642,7 @@ function render() {
                     <div class="expense-left">
                       <div class="expense-name" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</div>
                       <div class="expense-cat">${escapeHtml(e.cat || '')}</div>
+${e.date ? `<div class="expense-meta">${new Date(e.date).toLocaleDateString('en-AU')}</div>` : ''}
                     </div>
 
                     <div class="expense-right">

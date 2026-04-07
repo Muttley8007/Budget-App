@@ -906,3 +906,24 @@ body{
   align-items:center;
   gap:10px;
 }
+
+
+/* Expense date */
+.expense-meta{
+  margin-top:4px;
+  color:#9fb0ce;
+  font-size:12px;
+}
+.inline-expense-grid.with-date{
+  grid-template-columns:1.4fr 1fr 1fr 1fr;
+}
+@media (max-width:900px){
+  .inline-expense-grid.with-date{
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media (max-width:640px){
+  .inline-expense-grid.with-date{
+    grid-template-columns:1fr;
+  }
+}
